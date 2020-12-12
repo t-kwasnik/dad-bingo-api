@@ -4,7 +4,7 @@ var bodyParser = require("body-parser");
 var mongodb = require("mongodb");
 var ObjectID = mongodb.ObjectID;
 
-var CONTACTS_COLLECTION = "contacts";
+var DADISMS_COLLECTION = "dadisms";
 
 var app = express();
 app.use(express.static(__dirname + "/public"));
@@ -44,25 +44,39 @@ function handleError(res, reason, message, code) {
  *    POST: creates a new contact
  */
 
-app.get("/contacts", function(req, res) {
-  db.collection(CONTACTS_COLLECTION).find({}).toArray(function(err, docs) {
+
+app.get("/newboard", function(req, res) {
+  db.collection(DADISMS_COLLECTION).find({}).toArray(function(err, docs) {
     if (err) {
-      handleError(res, err.message, "Failed to get contacts.");
+      handleError(res, err.message, "Failed to get the jokes.");
+    } else {
+
+      const shuffled = docs.sort(() => 0.5 - Math.random());
+
+      // Get sub-array of first n elements after shuffled
+      let selected = shuffled.slice(0, 24);
+
+
+      res.status(200).json(docs);  
+    }
+  });
+});
+
+app.get("/dadisms", function(req, res) {
+  db.collection(DADISMS_COLLECTION).find({}).toArray(function(err, docs) {
+    if (err) {
+      handleError(res, err.message, "Failed to get the jokes.");
     } else {
       res.status(200).json(docs);  
     }
   });
 });
 
-app.post("/contacts", function(req, res) {
-  var newContact = req.body;
-  newContact.createDate = new Date();
+app.post("/dadisms", function(req, res) {
+  var newDadism = req.body;
+  newDadism.createDate = new Date();
 
-  if (!(req.body.firstName || req.body.lastName)) {
-    handleError(res, "Invalid user input", "Must provide a first or last name.", 400);
-  }
-
-  db.collection(CONTACTS_COLLECTION).insertOne(newContact, function(err, doc) {
+  db.collection(DADISMS_COLLECTION).insertOne(newDadism, function(err, doc) {
     if (err) {
       handleError(res, err.message, "Failed to create new contact.");
     } else {
@@ -77,30 +91,30 @@ app.post("/contacts", function(req, res) {
  *    DELETE: deletes contact by id
  */
 
-app.get("/contacts/:id", function(req, res) {
-  db.collection(CONTACTS_COLLECTION).findOne({ _id: new ObjectID(req.params.id) }, function(err, doc) {
+app.get("/dadisms/:id", function(req, res) {
+  db.collection(DADISMS_COLLECTION).findOne({ _id: new ObjectID(req.params.id) }, function(err, doc) {
     if (err) {
-      handleError(res, err.message, "Failed to get contact");
+      handleError(res, err.message, "Failed to get the joke");
     } else {
       res.status(200).json(doc);  
     }
   });
 });
 
-app.put("/contacts/:id", function(req, res) {
+app.put("/dadisms/:id", function(req, res) {
   var updateDoc = req.body;
   delete updateDoc._id;
 
   db.collection(CONTACTS_COLLECTION).updateOne({_id: new ObjectID(req.params.id)}, updateDoc, function(err, doc) {
     if (err) {
-      handleError(res, err.message, "Failed to update contact");
+      handleError(res, err.message, "Failed to update dadism");
     } else {
       res.status(204).end();
     }
   });
 });
 
-app.delete("/contacts/:id", function(req, res) {
+app.delete("/dadisms/:id", function(req, res) {
   db.collection(CONTACTS_COLLECTION).deleteOne({_id: new ObjectID(req.params.id)}, function(err, result) {
     if (err) {
       handleError(res, err.message, "Failed to delete contact");

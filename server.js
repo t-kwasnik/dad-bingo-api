@@ -25,6 +25,7 @@ app.use(function(req, res, next) {
 var db;
 
 console.log(process.env.MONGODB_URI)
+console.log(process.env.MONGODB_URI)
 // Connect to the database before starting the application server. 
 mongodb.MongoClient.connect(process.env.MONGODB_URI, function (err, database) {
   if (err) {

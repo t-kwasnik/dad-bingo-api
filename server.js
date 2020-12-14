@@ -136,11 +136,12 @@ app.get("/game/:user_id", function(req, res) {
 
 
 app.put("/activate_dadism/:game_id/:dadism_id", function(req, res) {
+  var game_id = req.params.game_id
   db.collection(GAMES_COLLECTION).findOne({_id: game_id }, function(err, doc) {
       if (doc !== null) {
         if (!doc.active_dadisms.includes(dadism_id)){
           doc.active_dadisms.push(dadism_id)
-          db.collection(GAMES_COLLECTION).updateOne({ game_id: game_id }, doc, function(err, doc) {
+          db.collection(GAMES_COLLECTION).updateOne({ _id: game_id }, doc, function(err, doc) {
             if (err) {
               handleError(res, err.message, "Failed to update new board.");
             } 
@@ -151,11 +152,12 @@ app.put("/activate_dadism/:game_id/:dadism_id", function(req, res) {
 });
 
 app.put("/deactivate_dadism/:game_id/:dadism_id", function(req, res) {
+  var game_id = req.params.game_id
   db.collection(GAMES_COLLECTION).findOne({_id: game_id }, function(err, doc) {
       if (doc !== null) {
         if (doc.active_dadisms.includes(dadism_id)){
           doc.active_dadisms = _.without(arr, _.findWhere(doc.active_dadisms, {_id: dadism_id}));
-          db.collection(GAMES_COLLECTION).updateOne({ game_id: game_id }, doc, function(err, doc) {
+          db.collection(GAMES_COLLECTION).updateOne({ _id: game_id }, doc, function(err, doc) {
             if (err) {
               handleError(res, err.message, "Failed to update new board.");
             } 

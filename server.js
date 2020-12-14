@@ -137,7 +137,9 @@ app.get("/game/:user_id", function(req, res) {
 
 app.put("/activate_dadism/:game_id/:dadism_id", function(req, res) {
   var game_id = new ObjectID(req.params.game_id)
+  var dadism_id = req.params.dadism_id
   db.collection(GAMES_COLLECTION).findOne({_id: game_id }, function(err, doc) {
+      console.log(doc)
       if (doc !== null) {
         if (!doc.active_dadisms.includes(dadism_id)){
           doc.active_dadisms.push(dadism_id)
@@ -154,6 +156,7 @@ app.put("/activate_dadism/:game_id/:dadism_id", function(req, res) {
 
 app.put("/deactivate_dadism/:game_id/:dadism_id", function(req, res) {
   var game_id = new ObjectID(req.params.game_id)
+  var dadism_id = req.params.dadism_id
   db.collection(GAMES_COLLECTION).findOne({_id: game_id }, function(err, doc) {
       if (doc !== null) {
         if (doc.active_dadisms.includes(dadism_id)){

@@ -200,7 +200,7 @@ app.get("/newboard/:user_id", function(req, res) {
           });
         }
       });
-      res.status(200).json(selected);  
+      res.status(200).json(data);  
     }
   });
 });

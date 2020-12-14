@@ -144,7 +144,8 @@ app.put("/activate_dadism/:game_id/:dadism_id", function(req, res) {
           db.collection(GAMES_COLLECTION).updateOne({ _id: game_id }, doc, function(err, doc) {
             if (err) {
               handleError(res, err.message, "Failed to update new board.");
-            } 
+            }
+            res.status(200).json({});   
           });
         }
       }
@@ -161,6 +162,7 @@ app.put("/deactivate_dadism/:game_id/:dadism_id", function(req, res) {
             if (err) {
               handleError(res, err.message, "Failed to update new board.");
             } 
+            res.status(200).json({});   
           });
         }
       }

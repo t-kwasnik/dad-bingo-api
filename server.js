@@ -68,7 +68,9 @@ function getNewBoard(user_id){
           result.push(v._id)
         });
 
-        var data = {user_id: user_id, board: result, status: 'active'}
+        db.collection(CURRENT_BOARDS_COLLECTION).deleteMany({user_id: user_id})
+        
+        var data = {user_id: user_id, board: result}
         db.collection(CURRENT_BOARDS_COLLECTION).insertOne(data, function(err, doc) {
           if (err) {
             handleError(res, err.message, "Failed to create new board.");
@@ -119,7 +121,7 @@ app.get("/game/:user_id", function(req, res) {
       if (doc === null) {
         res.status(404);  
       } else {
-        var response_data = {game_id: doc._id}
+        var response_data = { game_id: doc._id, active_dadisms: doc.active_dadisms }
         response_data.active_dadisms = doc.active_dadisms
         db.collection(CURRENT_BOARDS_COLLECTION).find({status: 'active'}).toArray(function(err, docs) {
           response_data.user_boards = docs;
@@ -133,19 +135,27 @@ app.get("/game/:user_id", function(req, res) {
 });
 
 
-app.post("/activate_dadism/:game_id/:dadism_id", function(req, res) {
-  db.collection(ACTIVE_DADISMS_COLLECTION).findOne({ game_id: game_id }, function(err, doc) {
-      if (doc === null) {
-        var data = {game_id: game_id, active_dadisms: [dadism_id]}
-        db.collection(ACTIVE_DADISMS_COLLECTION).insertOne(data, function(err, doc) {
-          if (err) {
-            handleError(res, err.message, "Failed to create new board.");
-          } 
-        });
-      } else {
+app.put("/activate_dadism/:game_id/:dadism_id", function(req, res) {
+  db.collection(GAMES_COLLECTION).findOne({ game_id: game_id }, function(err, doc) {
+      if (doc !== null) {
         if (!doc.active_dadisms.includes(dadism_id)){
           doc.active_dadisms.push(dadism_id)
-          db.collection(ACTIVE_DADISMS_COLLECTION).updateOne({ game_id: game_id }, doc, function(err, doc) {
+          db.collection(GAMES_COLLECTION).updateOne({ game_id: game_id }, doc, function(err, doc) {
+            if (err) {
+              handleError(res, err.message, "Failed to update new board.");
+            } 
+          });
+        }
+      }
+    });
+});
+
+app.put("/deactivate_dadism/:game_id/:dadism_id", function(req, res) {
+  db.collection(GAMES_COLLECTION).findOne({ game_id: game_id }, function(err, doc) {
+      if (doc !== null) {
+        if (doc.active_dadisms.includes(dadism_id)){
+          doc.active_dadisms = _.without(arr, _.findWhere(doc.active_dadisms, {_id: dadism_id}));
+          db.collection(GAMES_COLLECTION).updateOne({ game_id: game_id }, doc, function(err, doc) {
             if (err) {
               handleError(res, err.message, "Failed to update new board.");
             } 

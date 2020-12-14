@@ -175,8 +175,15 @@ app.get("/newboard/:user_id", function(req, res) {
       let selected = shuffled.slice(0, 24);
       
       let user_id = req.params.user_id
-      let data = {user_id: user_id, board: selected}
+      
 
+      let result = []
+        _(selected).each(function(v, i){
+          result.push(v._id)
+        });
+
+      let data = {user_id: user_id, board: result}
+      
       db.collection(CURRENT_BOARDS_COLLECTION).findOne({ user_id: user_id }, function(err, doc) {
         if (doc === null) {
               db.collection(CURRENT_BOARDS_COLLECTION).insertOne(data, function(err, doc) {

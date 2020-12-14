@@ -123,7 +123,7 @@ app.get("/game/:user_id", function(req, res) {
       } else {
         var response_data = { game_id: doc._id, active_dadisms: doc.active_dadisms }
         response_data.active_dadisms = doc.active_dadisms
-        db.collection(CURRENT_BOARDS_COLLECTION).find({status: 'active'}).toArray(function(err, docs) {
+        db.collection(CURRENT_BOARDS_COLLECTION).find({}).toArray(function(err, docs) {
           response_data.user_boards = docs;
           db.collection(DADISMS_COLLECTION).find({}).toArray(function(err, docs) {
             response_data.dadisms = docs;
@@ -176,7 +176,7 @@ app.get("/newboard/:user_id", function(req, res) {
       
       let user_id = req.params.user_id
       let data = {user_id: user_id, board: selected}
-      
+
       db.collection(CURRENT_BOARDS_COLLECTION).findOne({ user_id: user_id }, function(err, doc) {
         if (doc === null) {
               db.collection(CURRENT_BOARDS_COLLECTION).insertOne(data, function(err, doc) {

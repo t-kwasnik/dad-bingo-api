@@ -160,7 +160,16 @@ app.put("/deactivate_dadism/:game_id/:dadism_id", function(req, res) {
   db.collection(GAMES_COLLECTION).findOne({_id: game_id }, function(err, doc) {
       if (doc !== null) {
         if (doc.active_dadisms.includes(dadism_id)){
-          doc.active_dadisms = _.without(doc.active_dadisms, _.findWhere(doc.active_dadisms, {_id: dadism_id}));
+          console.log(doc.active_dadisms)
+          new_active_dadism = []
+          _(doc.active_dadisms).each(function(dadism, i){
+              if (dadism !== dadism_id){
+                new_active_dadism.push(dadism)
+              } 
+                  
+          });
+          doc.active_dadisms=new_active_dadism
+          console.log(doc.active_dadisms)
           db.collection(GAMES_COLLECTION).updateOne({ _id: game_id }, doc, function(err, doc) {
             if (err) {
               handleError(res, err.message, "Failed to update new board.");

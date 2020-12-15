@@ -96,8 +96,6 @@ app.get("/game/:user_id", function(req, res) {
         });
         db.collection(CURRENT_BOARDS_COLLECTION).deleteMany({})
         getNewBoard(user_id)
-        
-        
       } else {
         game_id = doc._id
         if (!doc.players.includes(user_id)){
@@ -127,12 +125,27 @@ app.get("/game/:user_id", function(req, res) {
           response_data.user_boards = docs;
           db.collection(DADISMS_COLLECTION).find({}).toArray(function(err, docs) {
             response_data.dadisms = docs;
-            res.status(200).json(response_data);  
-          })
-        })
-      }
+            console.log("a")
+            db.collection(FAMILY_COLLECTION)
+                .find({}).sort({wins:-1}).limit(10).toArray(function(err, docs) {
+                    if (err) {
+                      handleError(res, err.message, "Failed to get the joke");
+                    } else {
+                      console.log(docs)
+                      let leaderboard = []
+                      _.each(docs, function(doc){
+                        leaderboard.push({name: doc.name, wins: doc.wins})
+                      })
+                      response_data.leaderboard = leaderboard
+                      res.status(200).json(response_data);      
+                    }
+                  })
+              
+              })
+            })
+          }
+        });
     });
-});
 
 
 app.put("/activate_dadism/:game_id/:dadism_id", function(req, res) {
@@ -160,7 +173,6 @@ app.put("/deactivate_dadism/:game_id/:dadism_id", function(req, res) {
   db.collection(GAMES_COLLECTION).findOne({_id: game_id }, function(err, doc) {
       if (doc !== null) {
         if (doc.active_dadisms.includes(dadism_id)){
-          console.log(doc.active_dadisms)
           new_active_dadism = []
           _(doc.active_dadisms).each(function(dadism, i){
               if (dadism !== dadism_id){
@@ -169,7 +181,6 @@ app.put("/deactivate_dadism/:game_id/:dadism_id", function(req, res) {
                   
           });
           doc.active_dadisms=new_active_dadism
-          console.log(doc.active_dadisms)
           db.collection(GAMES_COLLECTION).updateOne({ _id: game_id }, doc, function(err, doc) {
             if (err) {
               handleError(res, err.message, "Failed to update new board.");
@@ -286,6 +297,7 @@ app.delete("/dadisms/:id", function(req, res) {
 app.post("/user", function(req, res) {
   var newUser = req.body;
   newUser.createDate = new Date();
+  newUser.wins = 0;
 
   db.collection(FAMILY_COLLECTION).findOne({ name: newUser.name }, function(err, doc) {
     if (err) {

@@ -80,6 +80,51 @@ function getNewBoard(user_id){
   })
 }
 
+
+function returnGame(game_id, res){
+    db.collection(GAMES_COLLECTION).findOne({ _id: new ObjectID(game_id) }, function(err, doc) {
+      if (doc === null) {
+        res.status(404);  
+      } else {
+        var response_data = { game_id: doc._id, active_dadisms: doc.active_dadisms, players: doc.players }
+        response_data.active_dadisms = doc.active_dadisms
+        db.collection(CURRENT_BOARDS_COLLECTION).find({}).toArray(function(err, docs) {
+          response_data.user_boards = docs;
+          db.collection(DADISMS_COLLECTION).find({}).toArray(function(err, docs) {
+            response_data.dadisms = docs;
+            let player_names = []
+            _.each(response_data.players, function(id){
+                console.log(id)
+                let __id = new ObjectID(id)
+                console.log(__id)
+                player_names.push(__id)
+                })
+            db.collection(FAMILY_COLLECTION).find({_id: {$in:player_names }}).toArray(function(err, docs) {
+              let player_names = []
+              console.log(docs)
+              _.each(docs, function(doc){
+                player_names.push({user_id: doc._id, name: doc.name})
+                })
+              response_data.players = player_names
+              db.collection(FAMILY_COLLECTION)
+                  .find({}).sort({wins:-1}).limit(10).toArray(function(err, docs) {
+                      if (err) {
+                        handleError(res, err.message, "Failed to get the joke");
+                      } else {
+                        let leaderboard = []
+                        _.each(docs, function(doc){
+                          leaderboard.push({name: doc.name, wins: doc.wins})
+                        })
+                        response_data.leaderboard = leaderboard
+                        res.status(200).json(response_data);      
+                      }
+                    })
+                })
+              })
+            })
+          }
+        });
+}
 app.get("/game/:user_id", function(req, res) {
 
   var game_id
@@ -96,9 +141,10 @@ app.get("/game/:user_id", function(req, res) {
         });
         db.collection(CURRENT_BOARDS_COLLECTION).deleteMany({})
         getNewBoard(user_id)
+        returnGame(game_id)
       } else {
         game_id = doc._id
-        if (!doc.players.includes(user_id)){
+        if (!doc.players.includes(new ObjectID(user_id))){
           doc.players.push(user_id)
           db.collection(GAMES_COLLECTION).updateOne({_id:  new ObjectID(game_id) }, doc, function(err, doc) {
             if (err) {
@@ -108,43 +154,17 @@ app.get("/game/:user_id", function(req, res) {
             if (doc===null){
               getNewBoard(user_id)
             }
+            returnGame(game_id, res)
           }) 
           });        
           
+        } else {
+          handleError(res, null, "Player not found.");
         }
       }
     });
 
-    db.collection(GAMES_COLLECTION).findOne({ status: 'active' }, function(err, doc) {
-      if (doc === null) {
-        res.status(404);  
-      } else {
-        var response_data = { game_id: doc._id, active_dadisms: doc.active_dadisms }
-        response_data.active_dadisms = doc.active_dadisms
-        db.collection(CURRENT_BOARDS_COLLECTION).find({}).toArray(function(err, docs) {
-          response_data.user_boards = docs;
-          db.collection(DADISMS_COLLECTION).find({}).toArray(function(err, docs) {
-            response_data.dadisms = docs;
-            console.log("a")
-            db.collection(FAMILY_COLLECTION)
-                .find({}).sort({wins:-1}).limit(10).toArray(function(err, docs) {
-                    if (err) {
-                      handleError(res, err.message, "Failed to get the joke");
-                    } else {
-                      console.log(docs)
-                      let leaderboard = []
-                      _.each(docs, function(doc){
-                        leaderboard.push({name: doc.name, wins: doc.wins})
-                      })
-                      response_data.leaderboard = leaderboard
-                      res.status(200).json(response_data);      
-                    }
-                  })
-              
-              })
-            })
-          }
-        });
+
     });
 
 

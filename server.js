@@ -349,8 +349,7 @@ app.post("/user", function(req, res) {
           }
         });
     } else {
-      delete doc.password
-      res.status(200).json(doc);  
+      handleError(res, err.message, "Name already in use");
     }
   });
         

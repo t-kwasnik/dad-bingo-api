@@ -349,7 +349,7 @@ app.post("/user", function(req, res) {
           }
         });
     } else {
-      handleError(res, err.message, "Name already in use");
+      res.status(404).json({'message':"Error"})
     }
   });
         

@@ -212,7 +212,7 @@ app.get("/newboard/:user_id", function(req, res) {
 
   db.collection(GAMES_COLLECTION).findOne({ status: "active"}, function(err, doc) {
     const current_game = doc
-    let number_resets = _.where(doc.player_resets, {user_id: user_id})[0].resets
+    let number_resets = _.where(doc.player_resets.map(function (pr) { return {user_id: pr.user_id.toString(), resets: pr.resets }}), {user_id: user_id})[0].resets
     if (number_resets < 5) {
       db.collection(DADISMS_COLLECTION).find({}).toArray(function(err, docs) {
         if (err) {
@@ -237,21 +237,26 @@ app.get("/newboard/:user_id", function(req, res) {
                 if (err) {
                   handleError(res, err.message, "Failed to update new board.");
                 } else {
+                  
+                  let new_player_resets = []
                   _.each(current_game.player_resets, function(x) {
-                    if (x.user_id === user_id) {
-                      x.resets += 1
+                    if (x.user_id.toString() === user_id) {
+                      new_player_resets.push({user_id: x.user_id, resets: x.resets +1 })
                     }
-                  })                  
-                  db.collection(GAMES_COLLECTION).updateOne({_id: doc._id}, doc, function(err, doc) {
+                  })       
+                  current_game.player_resets = new_player_resets           
+                  console.log(current_game.player_resets)
+                  db.collection(GAMES_COLLECTION).updateOne({_id: current_game._id}, current_game, function(err, doc) {
                     if (err) {
                       handleError(res, err.message, "Failed to update new board.");
                     }
+                    res.status(200).json(data);  
                   });
                 }
               });
             }
           });
-          res.status(200).json(data);  
+          
         }
       });
   } else {

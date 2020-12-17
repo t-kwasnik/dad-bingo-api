@@ -89,7 +89,7 @@ function joinGame(user_id){
           db.collection(GAMES_COLLECTION).insertOne(game);
 
         } else {
-          doc.players.push(new ObjectID(user_id)
+          doc.players.push(user_id)
           db.collection(GAMES_COLLECTION).updateOne({_id: doc._id}, doc, function(err, doc) {
             if (err) {
               handleError(res, err.message, "Failed to update new board.");

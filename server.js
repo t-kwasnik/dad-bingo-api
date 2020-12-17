@@ -85,7 +85,7 @@ function joinGame(user_id){
         handleError(res, err.message, "Failed to get the jokes.");
       } else {
         if (doc===null){
-          game = { active_dadisms: [], players: [user_id], status: "active" }
+          game = { active_dadisms: [], players: [user_id], status: "active", active_dadisms:[] }
           db.collection(GAMES_COLLECTION).insertOne(game);
 
         } else {
@@ -146,17 +146,16 @@ app.get("/game/:user_id", function(req, res) {
 
   var game_id
   var user_id = req.params.user_id
-
   db.collection(GAMES_COLLECTION).findOne({status: 'active'}, function(err, doc) {
       if (doc === null) {
         handleError(res, null, "No current active game.");
       } else {
-        game_id = doc._id
-        if (doc.players.includes(new ObjectID(user_id))){
-            returnGame(game_id, res)          
+        if (doc.players.map(user=>user.toString()).includes(user_id)==true) {
+          returnGame(doc._id, res)  
         } else {
-          handleError(res, null, "Player not found in current game.");
+          handleError(res, err, "Player not in current game.");  
         }
+        
       }
     });
 

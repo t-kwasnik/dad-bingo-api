@@ -211,6 +211,7 @@ app.get("/newboard/:user_id", function(req, res) {
   var user_id = req.params.user_id
 
   db.collection(GAMES_COLLECTION).findOne({ status: "active"}, function(err, doc) {
+    
     const current_game = doc
     let number_resets = _.where(doc.player_resets.map(function (pr) { return {user_id: pr.user_id.toString(), resets: pr.resets }}), {user_id: user_id})[0].resets
     if (number_resets < 5) {
@@ -225,7 +226,7 @@ app.get("/newboard/:user_id", function(req, res) {
               result.push(v._id)
             });
           let data = {user_id: new ObjectID(user_id), board: result}
-          db.collection(CURRENT_BOARDS_COLLECTION).findOne({ user_id: user_id }, function(err, doc) {
+          db.collection(CURRENT_BOARDS_COLLECTION).findOne({ user_id: new ObjectID(user_id) }, function(err, doc) {
             if (doc === null) {
                   db.collection(CURRENT_BOARDS_COLLECTION).insertOne(data, function(err, doc) {
                     if (err) {
@@ -233,7 +234,8 @@ app.get("/newboard/:user_id", function(req, res) {
                     } 
                   });
             } else {
-              db.collection(CURRENT_BOARDS_COLLECTION).updateOne({user_id: user_id }, data, function(err, doc) {
+
+              db.collection(CURRENT_BOARDS_COLLECTION).updateOne({user_id: new ObjectID(user_id) }, data, function(err, doc) {
                 if (err) {
                   handleError(res, err.message, "Failed to update new board.");
                 } else {

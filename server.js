@@ -224,7 +224,7 @@ app.get("/newboard/:user_id", function(req, res) {
             _(selected).each(function(v, i){
               result.push(v._id)
             });
-          let data = {user_id: user_id, board: result}
+          let data = {user_id: new ObjectID(user_id), board: result}
           db.collection(CURRENT_BOARDS_COLLECTION).findOne({ user_id: user_id }, function(err, doc) {
             if (doc === null) {
                   db.collection(CURRENT_BOARDS_COLLECTION).insertOne(data, function(err, doc) {

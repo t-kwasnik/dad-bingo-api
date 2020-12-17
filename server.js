@@ -27,7 +27,6 @@ var db;
 // Connect to the database before starting the application server. 
 mongodb.MongoClient.connect(process.env.MONGODB_URI, function (err, database) {
   if (err) {
-    console.log(err);
     process.exit(1);
   }
 
@@ -76,6 +75,27 @@ function getNewBoard(user_id){
             handleError(res, err.message, "Failed to create new board.");
           } 
         });
+      }
+  })
+}
+
+function joinGame(user_id){
+  db.collection(GAMES_COLLECTION).findOne({status: 'active'}, function(err, doc) {
+      if (err) {
+        handleError(res, err.message, "Failed to get the jokes.");
+      } else {
+        if (doc===null){
+          game = { active_dadisms: [], players: [user_id], status: "active" }
+          db.collection(GAMES_COLLECTION).insertOne(game);
+
+        } else {
+          doc.players.push(new ObjectID(user_id)
+          db.collection(GAMES_COLLECTION).updateOne({_id: doc._id}, doc, function(err, doc) {
+            if (err) {
+              handleError(res, err.message, "Failed to update new board.");
+            }
+          });
+        }
       }
   })
 }
@@ -129,34 +149,13 @@ app.get("/game/:user_id", function(req, res) {
 
   db.collection(GAMES_COLLECTION).findOne({status: 'active'}, function(err, doc) {
       if (doc === null) {
-        var data = { players: [user_id], status: 'active', active_dadisms: []}
-        db.collection(GAMES_COLLECTION).insertOne(data, function(err, doc) {
-          if (err) {
-            handleError(res, err.message, "Failed to create new game.");
-          }
-          game_id = doc._id 
-        });
-        db.collection(CURRENT_BOARDS_COLLECTION).deleteMany({})
-        getNewBoard(user_id)
-        returnGame(game_id)
+        handleError(res, null, "No current active game.");
       } else {
         game_id = doc._id
-        if (!doc.players.includes(user_id)){
-          doc.players.push(user_id)
-          db.collection(GAMES_COLLECTION).updateOne({_id:  new ObjectID(game_id) }, doc, function(err, doc) {
-            if (err) {
-              handleError(res, err.message, "Failed to update new board.");
-            } 
-            db.collection(CURRENT_BOARDS_COLLECTION).findOne({user_id: user_id},function(err, doc) {
-            if (doc===null){
-              getNewBoard(user_id)
-            }
-            returnGame(game_id, res)
-          }) 
-          });        
-          
+        if (doc.players.includes(new ObjectID(user_id))){
+            returnGame(game_id, res)          
         } else {
-          handleError(res, null, "Player not found.");
+          handleError(res, null, "Player not found in current game.");
         }
       }
     });
@@ -169,7 +168,6 @@ app.put("/activate_dadism/:game_id/:dadism_id", function(req, res) {
   var game_id = new ObjectID(req.params.game_id)
   var dadism_id = req.params.dadism_id
   db.collection(GAMES_COLLECTION).findOne({_id: game_id }, function(err, doc) {
-      console.log(doc)
       if (doc !== null) {
         if (!doc.active_dadisms.includes(dadism_id)){
           doc.active_dadisms.push(dadism_id)
@@ -325,8 +323,9 @@ app.post("/user", function(req, res) {
             handleError(res, err.message, "Failed to create new contact.");
           } else {
             delete doc.ops[0].password
+            getNewBoard(doc.ops[0]._id)
+            joinGame(doc.ops[0]._id)
             res.status(201).json(doc.ops[0]);
-            getNewBoard(doc._id)
           }
         });
     } else {

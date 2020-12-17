@@ -101,7 +101,6 @@ function returnGame(game_id, res){
                 })
             db.collection(FAMILY_COLLECTION).find({_id: {$in:player_names }}).toArray(function(err, docs) {
               let player_names = []
-              console.log(docs)
               _.each(docs, function(doc){
                 player_names.push({user_id: doc._id, name: doc.name})
                 })
@@ -327,6 +326,7 @@ app.post("/user", function(req, res) {
           if (err) {
             handleError(res, err.message, "Failed to create new contact.");
           } else {
+            getNewBoard(doc._id)
             delete doc.ops[0].password
             res.status(201).json(doc.ops[0]);
           }

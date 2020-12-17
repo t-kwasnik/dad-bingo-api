@@ -67,7 +67,7 @@ function getNewBoard(user_id){
           result.push(v._id)
         });
 
-        db.collection(CURRENT_BOARDS_COLLECTION).deleteMany({user_id: user_id})
+        db.collection(CURRENT_BOARDS_COLLECTION).deleteMany({user_id: new ObjectID(user_id)})
         
         var data = {user_id: new ObjectID(user_id), board: result}
         db.collection(CURRENT_BOARDS_COLLECTION).insertOne(data, function(err, doc) {

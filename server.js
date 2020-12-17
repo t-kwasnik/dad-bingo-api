@@ -349,7 +349,7 @@ app.post("/user", function(req, res) {
           }
         });
     } else {
-      res.status(404).json({'message':"Error"})
+      res.status(500).json({'message':"Error"})
     }
   });
         

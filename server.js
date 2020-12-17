@@ -69,7 +69,7 @@ function getNewBoard(user_id){
 
         db.collection(CURRENT_BOARDS_COLLECTION).deleteMany({user_id: user_id})
         
-        var data = {user_id: user_id, board: result}
+        var data = {user_id: new ObjectID(user_id), board: result}
         db.collection(CURRENT_BOARDS_COLLECTION).insertOne(data, function(err, doc) {
           if (err) {
             handleError(res, err.message, "Failed to create new board.");

@@ -85,11 +85,12 @@ function joinGame(user_id){
         handleError(res, err.message, "Failed to get the jokes.");
       } else {
         if (doc===null){
-          game = { active_dadisms: [], players: [user_id], status: "active", active_dadisms:[] }
+          game = { active_dadisms: [], players: [user_id], status: "active", active_dadisms:[], player_resets: [{user_id: user_id, resets: 0}] }
           db.collection(GAMES_COLLECTION).insertOne(game);
 
         } else {
           doc.players.push(user_id)
+          doc.player_resets.push({user_id: user_id, resets: 0})
           db.collection(GAMES_COLLECTION).updateOne({_id: doc._id}, doc, function(err, doc) {
             if (err) {
               handleError(res, err.message, "Failed to update new board.");
@@ -207,43 +208,56 @@ app.put("/deactivate_dadism/:game_id/:dadism_id", function(req, res) {
 });
 
 app.get("/newboard/:user_id", function(req, res) {
-  db.collection(DADISMS_COLLECTION).find({}).toArray(function(err, docs) {
-    if (err) {
-      handleError(res, err.message, "Failed to get the jokes.");
-    } else {
+  var user_id = req.params.user_id
 
-      const shuffled = docs.sort(() => 0.5 - Math.random());
-      let selected = shuffled.slice(0, 24);
-      
-      let user_id = req.params.user_id
-      
-
-      let result = []
-        _(selected).each(function(v, i){
-          result.push(v._id)
-        });
-
-      let data = {user_id: user_id, board: result}
-      
-      db.collection(CURRENT_BOARDS_COLLECTION).findOne({ user_id: user_id }, function(err, doc) {
-        if (doc === null) {
-              db.collection(CURRENT_BOARDS_COLLECTION).insertOne(data, function(err, doc) {
-                if (err) {
-                  handleError(res, err.message, "Failed to create new board.");
-                } 
-              });
-          
+  db.collection(GAMES_COLLECTION).findOne({ status: "active"}, function(err, doc) {
+    const current_game = doc
+    let number_resets = _.where(doc.player_resets, {user_id: user_id})[0].resets
+    if (number_resets < 5) {
+      db.collection(DADISMS_COLLECTION).find({}).toArray(function(err, docs) {
+        if (err) {
+          handleError(res, err.message, "Failed to get the jokes.");
         } else {
-          db.collection(CURRENT_BOARDS_COLLECTION).updateOne({user_id: user_id }, data, function(err, doc) {
-            if (err) {
-              handleError(res, err.message, "Failed to update new board.");
-            } 
+          const shuffled = docs.sort(() => 0.5 - Math.random());
+          let selected = shuffled.slice(0, 24);
+          let result = []
+            _(selected).each(function(v, i){
+              result.push(v._id)
+            });
+          let data = {user_id: user_id, board: result}
+          db.collection(CURRENT_BOARDS_COLLECTION).findOne({ user_id: user_id }, function(err, doc) {
+            if (doc === null) {
+                  db.collection(CURRENT_BOARDS_COLLECTION).insertOne(data, function(err, doc) {
+                    if (err) {
+                      handleError(res, err.message, "Failed to create new board.");
+                    } 
+                  });
+            } else {
+              db.collection(CURRENT_BOARDS_COLLECTION).updateOne({user_id: user_id }, data, function(err, doc) {
+                if (err) {
+                  handleError(res, err.message, "Failed to update new board.");
+                } else {
+                  _.each(current_game.player_resets, function(x) {
+                    if (x.user_id === user_id) {
+                      x.resets += 1
+                    }
+                  })                  
+                  db.collection(GAMES_COLLECTION).updateOne({_id: doc._id}, doc, function(err, doc) {
+                    if (err) {
+                      handleError(res, err.message, "Failed to update new board.");
+                    }
+                  });
+                }
+              });
+            }
           });
+          res.status(200).json(data);  
         }
       });
-      res.status(200).json(data);  
-    }
-  });
+  } else {
+    handleError(res, err, "Number of resets reached.");
+  }
+})
 });
 
 app.get("/dadisms", function(req, res) {

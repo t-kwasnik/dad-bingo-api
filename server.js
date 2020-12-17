@@ -94,9 +94,7 @@ function returnGame(game_id, res){
             response_data.dadisms = docs;
             let player_names = []
             _.each(response_data.players, function(id){
-                console.log(id)
                 let __id = new ObjectID(id)
-                console.log(__id)
                 player_names.push(__id)
                 })
             db.collection(FAMILY_COLLECTION).find({_id: {$in:player_names }}).toArray(function(err, docs) {
@@ -143,7 +141,7 @@ app.get("/game/:user_id", function(req, res) {
         returnGame(game_id)
       } else {
         game_id = doc._id
-        if (!doc.players.includes(new ObjectID(user_id))){
+        if (!doc.players.includes(user_id)){
           doc.players.push(user_id)
           db.collection(GAMES_COLLECTION).updateOne({_id:  new ObjectID(game_id) }, doc, function(err, doc) {
             if (err) {

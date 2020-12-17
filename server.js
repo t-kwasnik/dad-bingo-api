@@ -326,9 +326,9 @@ app.post("/user", function(req, res) {
           if (err) {
             handleError(res, err.message, "Failed to create new contact.");
           } else {
-            getNewBoard(doc._id)
             delete doc.ops[0].password
             res.status(201).json(doc.ops[0]);
+            getNewBoard(doc._id)
           }
         });
     } else {

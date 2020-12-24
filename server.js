@@ -196,7 +196,7 @@ function returnGame(game_id, res){
     if (doc === null) {
       res.status(404);  
     } else {
-      var response_data = { game_id: doc._id, active_dadisms: doc.active_dadisms, players: doc.players, player_resets: doc.player_resets}
+      var response_data = doc
       response_data.active_dadisms = doc.active_dadisms
       db.collection(CURRENT_BOARDS_COLLECTION).find({}).toArray(function(err, docs) {
         response_data.user_boards = docs;

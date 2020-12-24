@@ -244,7 +244,8 @@ var game_id
 var user_id = req.params.user_id
 db.collection(GAMES_COLLECTION).findOne({status: 'active'}, function(err, doc) {
     if (doc === null) {
-      handleError(res, null, "No current active game.");
+      game = { active_dadisms: [], players: [user_id], status: "active", active_dadisms:[], player_resets: [{user_id: user_id, resets: 0}] }
+      db.collection(GAMES_COLLECTION).insertOne(game);
     } else {
       if (doc.players.map(user=>user.toString()).includes(user_id)==true) {
         returnGame(doc._id, res)  
@@ -277,7 +278,6 @@ db.collection(GAMES_COLLECTION).findOne({status: 'active'}, function(err, doc) {
 app.put("/activate_dadism/:game_id/:dadism_id", function(req, res) {
   var game_id = new ObjectID(req.params.game_id)
   var dadism_id = req.params.dadism_id
-  checkForWins(game_id, dadism_id)
   db.collection(GAMES_COLLECTION).findOne({_id: game_id }, function(err, doc) {
       if (doc !== null) {
         if (!doc.active_dadisms.map(a=>a.toString()).includes(dadism_id)){

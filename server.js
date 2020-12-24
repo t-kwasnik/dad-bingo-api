@@ -137,7 +137,7 @@ function checkForWins(game_id, latest_dadism){
           final_winners.push(w.user_id)
         }
       })
-
+      console.log('A')
       if (final_winners !== null) {
         game.final_winners = final_winners
         db.collection(GAMES_COLLECTION).updateOne({_id: game_id}, game)
@@ -180,7 +180,11 @@ function joinGame(user_id){
         handleError(res, err.message, "Failed to get the jokes.");
       } else {
         if (doc===null){
-          game = { active_dadisms: [], players: [user_id], status: "active", active_dadisms:[], player_resets: [{user_id: user_id, resets: 0}] }
+          game = { active_dadisms: [], 
+                  players: [user_id], 
+                  status: "active", 
+                  active_dadisms:[], 
+                  player_resets: [{user_id: user_id, resets: 0}] }
           db.collection(GAMES_COLLECTION).insertOne(game);
 
         } else {
@@ -244,7 +248,10 @@ var game_id
 var user_id = req.params.user_id
 db.collection(GAMES_COLLECTION).findOne({status: 'active'}, function(err, doc) {
     if (doc === null) {
-      game = { active_dadisms: [], players: [user_id], status: "active", active_dadisms:[], player_resets: [{user_id: user_id, resets: 0}] }
+      game = { active_dadisms: [], 
+                players: [user_id], 
+                status: "active", active_dadisms:[], 
+                player_resets: [{user_id: user_id, resets: 0}] }
       db.collection(GAMES_COLLECTION).insertOne(game);
     } else {
       if (doc.players.map(user=>user.toString()).includes(user_id)==true) {
@@ -279,19 +286,19 @@ app.put("/activate_dadism/:game_id/:dadism_id", function(req, res) {
   var game_id = new ObjectID(req.params.game_id)
   var dadism_id = req.params.dadism_id
   db.collection(GAMES_COLLECTION).findOne({_id: game_id }, function(err, doc) {
-      if (doc !== null) {
-        if (!doc.active_dadisms.map(a=>a.toString()).includes(dadism_id)){
-          doc.active_dadisms.push(dadism_id)
-          db.collection(GAMES_COLLECTION).updateOne({ _id: game_id }, doc, function(err, doc) {
-            if (err) {
-              handleError(res, err.message, "Failed to update new board.");
-            }
-            checkForWins(game_id, dadism_id)
-              res.status(200).json({'success':true, dadism_id: dadism_id});      
-        });
-        }
-        res.status(200).json({'success':true, dadism_id: dadism_id});
+    if (doc !== null) {
+      if (!doc.active_dadisms.map(a=>a.toString()).includes(dadism_id)){
+        doc.active_dadisms.push(dadism_id)
+        db.collection(GAMES_COLLECTION).updateOne({ _id: game_id }, doc, function(err, doc) {
+          if (err) {
+            handleError(res, err.message, "Failed to update new board.");
+          }
+          checkForWins(game_id, dadism_id)
+            res.status(200).json({'success':true, dadism_id: dadism_id});      
+      });
       }
+      res.status(200).json({'success':true, dadism_id: dadism_id});
+    }
     });
   });
 

@@ -137,7 +137,7 @@ function checkForWins(game_id, latest_dadism){
           final_winners.push(w.user_id)
         }
       })
-      console.log('A')
+
       if (final_winners !== null) {
         game.final_winners = final_winners
         db.collection(GAMES_COLLECTION).updateOne({_id: game_id}, game)
@@ -293,8 +293,7 @@ app.put("/activate_dadism/:game_id/:dadism_id", function(req, res) {
           if (err) {
             handleError(res, err.message, "Failed to update new board.");
           }
-          checkForWins(game_id, dadism_id)
-            res.status(200).json({'success':true, dadism_id: dadism_id});      
+            checkForWins(game_id, dadism_id)
       });
       }
       res.status(200).json({'success':true, dadism_id: dadism_id});

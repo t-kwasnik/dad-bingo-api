@@ -49,26 +49,114 @@ function handleError(res, reason, message, code) {
   res.status(code || 500).json({"error": message});
 }
 
-/*  "/contacts"
- *    GET: finds all contacts
- *    POST: creates a new contact
- */
+function checkBoard(board, active_dadisms) {
+  var winning_patterns = [
+    //COL
+    [1,0,0,0,0,1,0,0,0,0,1,0,0,0,1,0,0,0,0,1,0,0,0,0],
+    [0,1,0,0,0,0,1,0,0,0,0,1,0,0,0,1,0,0,0,0,1,0,0,0],
+    [0,0,1,0,0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0,0,1,0,0],
+    [0,0,0,1,0,0,0,0,1,0,0,0,1,0,0,0,0,1,0,0,0,0,1,0],
+    [0,0,0,0,1,0,0,0,0,1,0,0,0,1,0,0,0,0,1,0,0,0,0,1],
+    //ROW
+    [1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1],
+    //X
+    [1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1],
+    [0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0],
+    //STAMP
+    [1,1,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,1,1],
+    [0,0,0,1,1,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,1,1,0,0,0],
+    //DIAMOND
+    [1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1],
+    [0,0,0,0,0,0,0,1,0,0,0,1,1,0,0,0,1,0,0,0,0,0,0,0]
+  ]
+  
+  var active_pattern = []
+  _.each(board.board, function(b){
+    if (active_dadisms.includes(b.dadism)){
+      active_pattern.push(1)
+    } else {
+      active_pattern.push(0)  
+    }
+  })
+
+  var win = true
+  _.each(winning_patterns, function(pattern){
+    if (win===false){
+      win = true
+    }
+    _.each(pattern, function(cell, idx){
+      if (cell === 1){        
+        if (cell !== active_pattern[idx]) {
+          win = false
+        } 
+      }
+    })
+  })
+
+  if (win === true) {
+    return (active_pattern.reduce((a, b) => a + b, 0))
+  } else {
+    return (-1)
+  }
+}
+
+function checkForWins(game_id, latest_dadism){
+  db.collection(GAMES_COLLECTION).findOne({ _id: game_id }, function(err, doc) {
+    var game = doc
+    var active_dadisms = doc.active_dadisms
+    let player_ids = []
+    _.each(doc.players, function(p){
+      player_ids.push( new ObjectID(p) )
+      })
+    
+    db.collection(CURRENT_BOARDS_COLLECTION).find({user_id: {$in: player_ids}}).toArray(function(err, docs) {
+      var winners = []
+      _.each(docs, function(board){
+        var win_score = checkBoard(board, active_dadisms)
+        if (win_score > 0 ){
+          winners.push(
+            {user_id: board.user_id, win_score: win_score, winning_dadism: latest_dadism}
+          )
+        } 
+      })
+
+      var final_winners = null
+      var high_score = 0
+      _.each(winners, function(w){
+        if (w.win_score > high_score) {
+          final_winners = [w.user_id]
+          high_score = w.win_score
+        } else if (w.win_score === high_score){
+          final_winners.push(w.user_id)
+        }
+      })
+
+      if (final_winners !== null) {
+        game.final_winners = final_winners
+        db.collection(GAMES_COLLECTION).updateOne({_id: game_id}, game)
+      }
+    })
+  })
+}
 
 function getNewBoard(user_id){
   db.collection(DADISMS_COLLECTION).find({}).toArray(function(err, docs) {
       if (err) {
         handleError(res, err.message, "Failed to get the jokes.");
       } else {
-
         const shuffled = docs.sort(() => 0.5 - Math.random());
         let board = shuffled.slice(0, 24);
         let result = []
         _(board).each(function(v, i){
           result.push(v._id)
         });
-
         db.collection(CURRENT_BOARDS_COLLECTION).deleteMany({user_id: new ObjectID(user_id)})
-        
         var data = {user_id: new ObjectID(user_id), board: result}
         db.collection(CURRENT_BOARDS_COLLECTION).insertOne(data, function(err, doc) {
           if (err) {
@@ -103,84 +191,106 @@ function joinGame(user_id){
 
 
 function returnGame(game_id, res){
-    db.collection(GAMES_COLLECTION).findOne({ _id: new ObjectID(game_id) }, function(err, doc) {
-      if (doc === null) {
-        res.status(404);  
-      } else {
-        var response_data = { game_id: doc._id, active_dadisms: doc.active_dadisms, players: doc.players, player_resets: doc.player_resets}
-        response_data.active_dadisms = doc.active_dadisms
-        db.collection(CURRENT_BOARDS_COLLECTION).find({}).toArray(function(err, docs) {
-          response_data.user_boards = docs;
-          db.collection(DADISMS_COLLECTION).find({}).toArray(function(err, docs) {
-            response_data.dadisms = docs;
+  db.collection(GAMES_COLLECTION).findOne({ _id: new ObjectID(game_id) }, function(err, doc) {
+    if (doc === null) {
+      res.status(404);  
+    } else {
+      var response_data = { game_id: doc._id, active_dadisms: doc.active_dadisms, players: doc.players, player_resets: doc.player_resets}
+      response_data.active_dadisms = doc.active_dadisms
+      db.collection(CURRENT_BOARDS_COLLECTION).find({}).toArray(function(err, docs) {
+        response_data.user_boards = docs;
+        db.collection(DADISMS_COLLECTION).find({}).toArray(function(err, docs) {
+          response_data.dadisms = docs;
+          let player_names = []
+          _.each(response_data.players, function(id){
+              let __id = new ObjectID(id)
+              player_names.push(__id)
+              })
+          db.collection(FAMILY_COLLECTION).find({_id: {$in:player_names }}).toArray(function(err, docs) {
             let player_names = []
-            _.each(response_data.players, function(id){
-                let __id = new ObjectID(id)
-                player_names.push(__id)
-                })
-            db.collection(FAMILY_COLLECTION).find({_id: {$in:player_names }}).toArray(function(err, docs) {
-              let player_names = []
-              _.each(docs, function(doc){
-                player_names.push({user_id: doc._id, name: doc.name})
-                })
-              response_data.players = player_names
-              db.collection(FAMILY_COLLECTION)
-                  .find({}).sort({wins:-1}).limit(10).toArray(function(err, docs) {
-                      if (err) {
-                        handleError(res, err.message, "Failed to get the joke");
-                      } else {
-                        let leaderboard = []
-                        _.each(docs, function(doc){
-                          leaderboard.push({name: doc.name, wins: doc.wins})
-                        })
-                        response_data.leaderboard = leaderboard
-                        res.status(200).json(response_data);      
-                      }
-                    })
-                })
+            _.each(docs, function(doc){
+              player_names.push({user_id: doc._id, name: doc.name})
+              })
+            response_data.players = player_names
+            db.collection(FAMILY_COLLECTION)
+                .find({}).sort({wins:-1}).limit(10).toArray(function(err, docs) {
+                    if (err) {
+                      handleError(res, err.message, "Failed to get the joke");
+                    } else {
+                      let leaderboard = []
+                      _.each(docs, function(doc){
+                        leaderboard.push({name: doc.name, wins: doc.wins})
+                      })
+                      response_data.leaderboard = leaderboard
+                      res.status(200).json(response_data);      
+                    }
+                  })
               })
             })
-          }
-        });
-}
-app.get("/game/:user_id", function(req, res) {
-
-  var game_id
-  var user_id = req.params.user_id
-  db.collection(GAMES_COLLECTION).findOne({status: 'active'}, function(err, doc) {
-      if (doc === null) {
-        handleError(res, null, "No current active game.");
-      } else {
-        if (doc.players.map(user=>user.toString()).includes(user_id)==true) {
-          returnGame(doc._id, res)  
-        } else {
-          handleError(res, err, "Player not in current game.");  
+          })
         }
-        
+      });
+}
+
+app.get("/game/:user_id", function(req, res) {
+var game_id
+var user_id = req.params.user_id
+db.collection(GAMES_COLLECTION).findOne({status: 'active'}, function(err, doc) {
+    if (doc === null) {
+      handleError(res, null, "No current active game.");
+    } else {
+      if (doc.players.map(user=>user.toString()).includes(user_id)==true) {
+        returnGame(doc._id, res)  
+      } else {
+        handleError(res, err, "Player not in current game.");  
       }
-    });
+    }
+  });
+});
 
 
-    });
+app.post("/gamewins/:game_id", function(req, res) {
+var game_id = req.params.user_id
+var user_id = req.params.user_id
+db.collection(GAMES_COLLECTION).findOne({status: 'active'}, function(err, doc) {
+    if (doc === null) {
+      handleError(res, null, "No current active game.");
+    } else {
+      if (doc.players.map(user=>user.toString()).includes(user_id)==true) {
+        returnGame(doc._id, res)  
+      } else {
+        handleError(res, err, "Player not in current game.");  
+      }
+      
+    }
+  });
+});
 
 
 app.put("/activate_dadism/:game_id/:dadism_id", function(req, res) {
   var game_id = new ObjectID(req.params.game_id)
   var dadism_id = req.params.dadism_id
+
   db.collection(GAMES_COLLECTION).findOne({_id: game_id }, function(err, doc) {
       if (doc !== null) {
-        if (!doc.active_dadisms.includes(dadism_id)){
+        if (!doc.active_dadisms.map(a=>a.toString()).includes(dadism_id)){
           doc.active_dadisms.push(dadism_id)
           db.collection(GAMES_COLLECTION).updateOne({ _id: game_id }, doc, function(err, doc) {
             if (err) {
               handleError(res, err.message, "Failed to update new board.");
             }
-            res.status(200).json({});   
-          });
+            let win = checkForWins(game_id, dadism_id)
+            if (win===false){
+              res.status(200).json({'veryOK':true, dadism_id: dadism_id});      
+            } else {
+              res.status(200).json({'veryOK':false, dadism_id: dadism_id});      
+          }
+        });
         }
       }
     });
-});
+  });
+
 
 app.put("/deactivate_dadism/:game_id/:dadism_id", function(req, res) {
   var game_id = new ObjectID(req.params.game_id)
@@ -247,7 +357,6 @@ app.get("/newboard/:user_id", function(req, res) {
                     }
                   })       
                   current_game.player_resets = new_player_resets           
-                  console.log(current_game.player_resets)
                   db.collection(GAMES_COLLECTION).updateOne({_id: current_game._id}, current_game, function(err, doc) {
                     if (err) {
                       handleError(res, err.message, "Failed to update new board.");

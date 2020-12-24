@@ -78,18 +78,16 @@ function checkBoard(board, active_dadisms) {
   
   var active_pattern = []
   _.each(board.board, function(b){
-    if (active_dadisms.includes(b.dadism)){
+    if (active_dadisms.map(d=>d.toString()).includes(b.toString())){
       active_pattern.push(1)
     } else {
       active_pattern.push(0)  
     }
   })
 
-  var win = true
+  var win = false
   _.each(winning_patterns, function(pattern){
-    if (win===false){
-      win = true
-    }
+    var win_check = true
     _.each(pattern, function(cell, idx){
       if (cell === 1){        
         if (cell !== active_pattern[idx]) {
@@ -97,6 +95,9 @@ function checkBoard(board, active_dadisms) {
         } 
       }
     })
+    if (win_check===true) {
+      win = true
+    }
   })
 
   if (win === true) {
@@ -270,7 +271,7 @@ db.collection(GAMES_COLLECTION).findOne({status: 'active'}, function(err, doc) {
 app.put("/activate_dadism/:game_id/:dadism_id", function(req, res) {
   var game_id = new ObjectID(req.params.game_id)
   var dadism_id = req.params.dadism_id
-
+  
   db.collection(GAMES_COLLECTION).findOne({_id: game_id }, function(err, doc) {
       if (doc !== null) {
         if (!doc.active_dadisms.map(a=>a.toString()).includes(dadism_id)){
@@ -279,12 +280,8 @@ app.put("/activate_dadism/:game_id/:dadism_id", function(req, res) {
             if (err) {
               handleError(res, err.message, "Failed to update new board.");
             }
-            let win = checkForWins(game_id, dadism_id)
-            if (win===false){
-              res.status(200).json({'veryOK':true, dadism_id: dadism_id});      
-            } else {
-              res.status(200).json({'veryOK':false, dadism_id: dadism_id});      
-          }
+            checkForWins(game_id, dadism_id)
+              res.status(200).json({'success':true, dadism_id: dadism_id});      
         });
         }
       }

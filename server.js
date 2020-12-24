@@ -84,22 +84,23 @@ function checkBoard(board, active_dadisms) {
       active_pattern.push(0)  
     }
   })
-
+  
   var win = false
   _.each(winning_patterns, function(pattern){
-    var win_check = true
+    var win_check = true    
     _.each(pattern, function(cell, idx){
       if (cell === 1){        
         if (cell !== active_pattern[idx]) {
-          win = false
+          win_check = false
         } 
       }
     })
     if (win_check===true) {
+      console.log(pattern,active_pattern)
       win = true
     }
   })
-
+  
   if (win === true) {
     return (active_pattern.reduce((a, b) => a + b, 0))
   } else {
@@ -285,6 +286,7 @@ db.collection(GAMES_COLLECTION).findOne({status: 'active'}, function(err, doc) {
 app.put("/activate_dadism/:game_id/:dadism_id", function(req, res) {
   var game_id = new ObjectID(req.params.game_id)
   var dadism_id = req.params.dadism_id
+  checkForWins(game_id, dadism_id)
   db.collection(GAMES_COLLECTION).findOne({_id: game_id }, function(err, doc) {
     if (doc !== null) {
       if (!doc.active_dadisms.map(a=>a.toString()).includes(dadism_id)){

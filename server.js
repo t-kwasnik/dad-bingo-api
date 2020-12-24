@@ -141,6 +141,12 @@ function checkForWins(game_id, latest_dadism){
       if (final_winners !== null) {
         game.final_winners = final_winners
         db.collection(GAMES_COLLECTION).updateOne({_id: game_id}, game)
+        _.each(final_winners, function(u){
+          db.collection(FAMILY_COLLECTION).findOne({_id: new ObjectID(u)}, function(err, doc) {
+            doc.wins = doc.wins + 1
+            db.collection(FAMILY_COLLECTION).updateOne({_id: doc._id}, doc)
+          })
+        })
       }
     })
   })
@@ -271,7 +277,7 @@ db.collection(GAMES_COLLECTION).findOne({status: 'active'}, function(err, doc) {
 app.put("/activate_dadism/:game_id/:dadism_id", function(req, res) {
   var game_id = new ObjectID(req.params.game_id)
   var dadism_id = req.params.dadism_id
-  
+  checkForWins(game_id, dadism_id)
   db.collection(GAMES_COLLECTION).findOne({_id: game_id }, function(err, doc) {
       if (doc !== null) {
         if (!doc.active_dadisms.map(a=>a.toString()).includes(dadism_id)){
@@ -284,6 +290,7 @@ app.put("/activate_dadism/:game_id/:dadism_id", function(req, res) {
               res.status(200).json({'success':true, dadism_id: dadism_id});      
         });
         }
+        res.status(200).json({'success':true, dadism_id: dadism_id});
       }
     });
   });
